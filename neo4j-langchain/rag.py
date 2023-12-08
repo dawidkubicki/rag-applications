@@ -1,8 +1,17 @@
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from langchain.vectorstores import Neo4jVector
 from langchain.embeddings import HuggingFaceBgeEmbeddings
+
+# from langchain.graphs import Neo4jGraph
+from langchain.vectorstores.neo4j_vector import Neo4jVector
+
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
+from langchain.llms import HuggingFacePipeline
+
+from langchain.prompts import PromptTemplate
+from langchain.chains import RetrievalQA 
+
 
 
 # Loading document and splitting into the chunks
@@ -12,18 +21,28 @@ documents = pdfLoader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 docs = text_splitter.split_documents(documents)
 
-# Neo4j Aura credentials
-url=""
-username=""
-password=""
+url = "neo4j+s://09be3749.databases.neo4j.io"
+username ="neo4j"
+password = "GYUP4LmO6Dnddh-K42HCNlpsHhXlCY8GwP60Fk6s0_U"
 
-# The Neo4jVector Module will connect to Neo4j and create a vector index if needed.
-
-neo4j_db = Neo4jVector.from_documents(
-    docs, HuggingFaceBgeEmbeddings(), url=url, username=username, password=password
+vector_index = Neo4jVector.from_documents(
+    embedding=HuggingFaceBgeEmbeddings(),
+    documents=docs,
+    url=url,
+    username=username,
+    password=password,
 )
 
-query = "What are Legal Proceedings?"
+# vector_index = Neo4jVector.from_existing_graph(
+#     HuggingFaceBgeEmbeddings(),
+#     url=url,
+#     username=username,
+#     password=password,
+#     index_name='chunks',
+#     node_label="Chunk",
+#     text_node_properties=['embedding'],
+#     embedding_node_property='embedding',
 
-results = neo4j_db.similarity_search(query, k=1)
-print(results[0].page_content)
+# )
+question = "What are current Legal Proceedings?"
+response = vector_index.similarity_search(question)
